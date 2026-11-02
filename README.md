@@ -1,9 +1,9 @@
-# 🏥 AI-Powered Patient Follow-Up, Prescription Refill & Medical Document Management System
+# AI-Powered Patient Follow-Up, Prescription Refill & Medical Document Management System
 
 An intelligent healthcare automation system built with n8n that helps clinics, medical practices, and hospitals automate patient follow-ups, prescription refill requests, and medical document processing while reducing manual administrative work.
 
 
-# 📌 Problem Statement
+# Problem Statement
 
 Healthcare providers handle hundreds of repetitive operational tasks every week.
 
@@ -29,7 +29,7 @@ The platform focuses on three critical areas:
 ### 3. Medical Document Processing
 
 
-# 🚀 Workflow 1: Patient Follow-Up System
+#  Workflow 1: Patient Follow-Up System
 
 ## Problem
 
@@ -68,7 +68,7 @@ Patient Response Tracked
 ✅ Reduced manual outreach
 
 
-# 💊 Workflow 2: Prescription Refill Management
+# Workflow 2: Prescription Refill Management
 
 ## Problem
 
@@ -141,7 +141,7 @@ Correct Department Notified
 ✅ Better department coordination
 
 
-# 🧠 AI Capabilities
+# AI Capabilities
 
 The system uses AI to:
 
@@ -154,7 +154,7 @@ The system uses AI to:
 **Note:** AI supports operational workflows and does not provide medical diagnoses.
 
 
-# 🏥 Real-World Use Cases
+# Real-World Use Cases
 
 ### Clinics
 
@@ -178,7 +178,7 @@ The system uses AI to:
 - Cross-department coordination
 
 
-# 📊 Business Value
+# Business Value
 
 ## For Healthcare Providers
 
@@ -214,7 +214,7 @@ The system uses AI to:
 - Healthcare Operations Automation
 
 
-# 📈 Expected Outcomes
+# Expected Outcomes
 
 | Area | Expected Improvement |
 |--------|----------------------|
@@ -226,7 +226,7 @@ The system uses AI to:
 | Operational Efficiency | Increased |
 
 
-# 🔮 Future Enhancements
+# Future Enhancements
 
 - WhatsApp Notifications
 - EMR/EHR Integration
