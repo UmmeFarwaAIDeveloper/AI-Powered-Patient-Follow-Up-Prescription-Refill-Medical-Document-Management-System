@@ -1,0 +1,952 @@
+{
+  "name": "AI-Powered Patient Follow-Up, Prescription Refill & Medical Document Management System",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Prescription Refill Request",
+        "formDescription": "Vitalis Health Center - request a prescription refill. Our care team reviews every request.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Patient Name",
+              "fieldName": "patient_name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "fieldName": "patient_email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Phone",
+              "fieldName": "patient_phone"
+            },
+            {
+              "fieldLabel": "Medication",
+              "fieldName": "medication",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Dosage",
+              "fieldName": "dosage"
+            },
+            {
+              "fieldLabel": "Preferred Pharmacy",
+              "fieldName": "pharmacy"
+            },
+            {
+              "fieldLabel": "Notes (e.g. days of medication left, side effects)",
+              "fieldType": "textarea",
+              "fieldName": "patient_notes"
+            }
+          ]
+        },
+        "options": {
+          "path": "prescription-refill",
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Thank you. Your refill request was received and our care team will review it shortly."
+            }
+          }
+        }
+      },
+      "id": "732bad09-e503-4482-8dce-9858306eb560",
+      "name": "Refill Request Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -288,
+        0
+      ],
+      "webhookId": "4f019419-f35c-40d6-a7d4-6005e6f07d1e"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Assess this prescription refill request.\nMedication: {{ $json.medication }}\nDosage: {{ $json.dosage }}\nPatient notes: {{ $json.patient_notes }}\nClassify as one of: urgent (patient is out of or nearly out of a critical medication such as insulin, anticoagulant, heart, seizure or asthma medicine, or reports worrying symptoms), review (controlled substance such as opioid, benzodiazepine or stimulant, too-early refill, or unclear request), routine (standard refill of a maintenance medication).\nReply in exactly this format: <level>|<one sentence summary for clinic staff>",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a clinical pharmacy triage assistant. You never approve or deny a refill. You only classify risk and summarise. When unsure, choose the more cautious level."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "bd692b46-0141-4f1a-a65d-e539f5cccf89",
+      "name": "Assess Refill Risk",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -16,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "8dacc976-37e9-484f-a39c-2655a8fd2700",
+      "name": "Refill Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        352
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "patient_name",
+              "value": "={{ $(\"Refill Request Form\").item.json.patient_name }}",
+              "type": "string"
+            },
+            {
+              "id": "r2",
+              "name": "patient_email",
+              "value": "={{ $(\"Refill Request Form\").item.json.patient_email }}",
+              "type": "string"
+            },
+            {
+              "id": "r3",
+              "name": "patient_phone",
+              "value": "={{ $(\"Refill Request Form\").item.json.patient_phone || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "r4",
+              "name": "medication",
+              "value": "={{ $(\"Refill Request Form\").item.json.medication }}",
+              "type": "string"
+            },
+            {
+              "id": "r5",
+              "name": "dosage",
+              "value": "={{ $(\"Refill Request Form\").item.json.dosage || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "r6",
+              "name": "pharmacy",
+              "value": "={{ $(\"Refill Request Form\").item.json.pharmacy || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "r7",
+              "name": "patient_notes",
+              "value": "={{ $(\"Refill Request Form\").item.json.patient_notes || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "r8",
+              "name": "risk_level",
+              "value": "={{ (() => { const t = String($json.text || \"\").split(\"|\")[0].toLowerCase(); return t.includes(\"urgent\") ? \"urgent\" : (t.includes(\"routine\") ? \"routine\" : \"review\"); })() }}",
+              "type": "string"
+            },
+            {
+              "id": "r9",
+              "name": "ai_summary",
+              "value": "={{ String($json.text || \"\").split(\"|\").slice(1).join(\"|\").trim() || \"No summary available\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1a1bb54a-fc82-43f0-9f8f-9b7135cffb2e",
+      "name": "Parse Refill Assessment",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        336,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "dI505pyx8S6rK0Xt",
+          "cachedResultName": "refill_requests"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "patient_name": "={{ $json.patient_name }}",
+            "patient_email": "={{ $json.patient_email }}",
+            "patient_phone": "={{ $json.patient_phone }}",
+            "medication": "={{ $json.medication }}",
+            "dosage": "={{ $json.dosage }}",
+            "pharmacy": "={{ $json.pharmacy }}",
+            "patient_notes": "={{ $json.patient_notes }}",
+            "risk_level": "={{ $json.risk_level }}",
+            "ai_summary": "={{ $json.ai_summary }}",
+            "status": "pending_review",
+            "requested_at": "={{ $now.toISO() }}",
+            "last_contact_at": "={{ $now.toISO() }}",
+            "reminder_count": 0
+          }
+        },
+        "options": {}
+      },
+      "id": "e3f20ebc-b010-4bdc-bce7-9efefd008a81",
+      "name": "Save Refill Request",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(\"Parse Refill Assessment\").item.json.patient_email }}",
+        "subject": "We received your prescription refill request",
+        "message": "=<div style=\"background:#f4f6f8;padding:24px;font-family:Arial,Helvetica,sans-serif;\"><div style=\"max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e3e8ee;\"><div style=\"background:#0f766e;color:#ffffff;padding:20px 24px;font-size:20px;font-weight:bold;\">Vitalis Health Center</div><div style=\"padding:24px;color:#1f2937;font-size:15px;line-height:1.6;\"><p>Dear {{ $(\"Parse Refill Assessment\").item.json.patient_name }},</p><p>We received your refill request for <b>{{ $(\"Parse Refill Assessment\").item.json.medication }}</b>. Our care team will review it and update you within {{ $(\"Parse Refill Assessment\").item.json.risk_level === \"urgent\" ? \"a few hours\" : \"1 to 2 working days\" }}.</p><p>Please note that a clinician must approve every refill. If you are out of medication or feel unwell, call the clinic or seek emergency care.</p><p>Kind regards,<br>Vitalis Health Center</p></div></div></div>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "6a268904-7728-46aa-a258-01b081cf36cf",
+      "name": "Confirm Refill To Patient",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        128
+      ],
+      "webhookId": "dff28f4b-f47a-4839-b396-d73c91a5ffa4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ASbJTuDKjwDhJtLy",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "risk",
+              "leftValue": "={{ $(\"Parse Refill Assessment\").item.json.risk_level }}",
+              "rightValue": "routine",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "284994b6-b3f8-4e64-811f-0756f9057f3e",
+      "name": "Needs Staff Attention Now",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1008,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "ha8751284@gmail.com",
+        "subject": "={{ $(\"Parse Refill Assessment\").item.json.risk_level === \"urgent\" ? \"URGENT refill: \" : \"Refill needs clinical review: \" }}{{ $(\"Parse Refill Assessment\").item.json.patient_name }} - {{ $(\"Parse Refill Assessment\").item.json.medication }}",
+        "message": "=<div style=\"background:#f4f6f8;padding:24px;font-family:Arial,Helvetica,sans-serif;\"><div style=\"max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e3e8ee;\"><div style=\"background:{{ $(\"Parse Refill Assessment\").item.json.risk_level === \"urgent\" ? \"#b91c1c\" : \"#b45309\" }};color:#ffffff;padding:20px 24px;font-size:20px;font-weight:bold;\">Refill request: {{ $(\"Parse Refill Assessment\").item.json.risk_level }}</div><div style=\"padding:24px;color:#1f2937;font-size:15px;line-height:1.6;\"><table style=\"width:100%;background:#fffbeb;border-radius:6px;\" cellpadding=\"12\"><tr><td><b>Patient:</b> {{ $(\"Parse Refill Assessment\").item.json.patient_name }}<br><b>Phone:</b> {{ $(\"Parse Refill Assessment\").item.json.patient_phone }}<br><b>Email:</b> {{ $(\"Parse Refill Assessment\").item.json.patient_email }}<br><b>Medication:</b> {{ $(\"Parse Refill Assessment\").item.json.medication }} {{ $(\"Parse Refill Assessment\").item.json.dosage }}<br><b>Pharmacy:</b> {{ $(\"Parse Refill Assessment\").item.json.pharmacy }}<br><b>Patient notes:</b> {{ $(\"Parse Refill Assessment\").item.json.patient_notes }}<br><b>AI summary:</b> {{ $(\"Parse Refill Assessment\").item.json.ai_summary }}</td></tr></table><p>AI triage is advisory only. A clinician must approve the refill. After handling, set the row status to approved or declined in the refill_requests table.</p></div></div></div>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "96cffc55-787f-43ec-847f-36ba24fcf7fe",
+      "name": "Alert Staff Refill",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1232,
+        128
+      ],
+      "webhookId": "d9c8e473-e925-4741-9af5-c22364ccad18",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ASbJTuDKjwDhJtLy",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "dd5cf683-18e8-4f46-900c-bc07b225c76d",
+      "name": "Every 4 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -288,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "dI505pyx8S6rK0Xt",
+          "cachedResultName": "refill_requests"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "keyValue": "pending_review"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "1b4b2183-034c-46a4-8efa-9b6a3646b4dc",
+      "name": "Get Pending Refills",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "stale",
+              "leftValue": "={{ Number($json.reminder_count || 0) < 3 && (Date.now() - new Date($json.last_contact_at).getTime()) / 3600000 >= ($json.risk_level === \"urgent\" ? 4 : 24) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5200c17f-945f-45f0-ba85-5be53fa084b1",
+      "name": "Waiting Too Long",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "ha8751284@gmail.com",
+        "subject": "=Reminder: refill still pending for {{ $json.patient_name }} ({{ $json.risk_level }})",
+        "message": "=<div style=\"background:#f4f6f8;padding:24px;font-family:Arial,Helvetica,sans-serif;\"><div style=\"max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;border:1px solid #e3e8ee;\"><div style=\"background:#b45309;color:#ffffff;padding:20px 24px;font-size:20px;font-weight:bold;\">Refill awaiting review</div><div style=\"padding:24px;color:#1f2937;font-size:15px;line-height:1.6;\"><p><b>{{ $json.patient_name }}</b> is still waiting for a decision on <b>{{ $json.medication }}</b> {{ $json.dosage }} (priority: {{ $json.risk_level }}).</p><p>Reminder {{ Number($json.reminder_count || 0) + 1 }} of 3. Please review and set the row status to approved or declined in the refill_requests table.</p></div></div></div>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "fb64057b-b5b9-4362-a89d-6fe0aa06a883",
+      "name": "Remind Staff Pending Refill",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        352
+      ],
+      "webhookId": "d402598c-915d-42c9-a51f-81fc333d0206",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ASbJTuDKjwDhJtLy",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "dI505pyx8S6rK0Xt",
+          "cachedResultName": "refill_requests"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $(\"Waiting Too Long\").item.json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "reminder_count": "={{ Number($(\"Waiting Too Long\").item.json.reminder_count || 0) + 1 }}",
+            "last_contact_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "7320a61b-8780-4d43-9e43-321027ce60cc",
+      "name": "Record Staff Reminder",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        656,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 10,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "has:attachment",
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "id": "bd52205f-ea6c-4372-afdb-2cd679c46cd5",
+      "name": "New Medical Document Email",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -288,
+        448
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ASbJTuDKjwDhJtLy",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Classify this incoming medical document email.\nSubject: {{ $json.subject }}\nFrom: {{ $json.from.value[0].address }}\nBody: {{ String($json.text || \"\").slice(0, 1500) }}\nChoose doc_type from: lab_result, referral, prescription, insurance, imaging, consent_form, other.\nChoose urgency from: critical (needs clinician today), high (needs action within a day), normal.\nChoose department from: Laboratory, Pharmacy, Billing and Insurance, Referrals, Medical Records, General Admin.\nReply in exactly this format: <doc_type>|<urgency>|<department>|<one sentence summary>",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You sort incoming documents for a clinic front desk. Output only the pipe-separated line. When unsure about urgency, choose the more urgent level."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "60311744-8b85-46f4-83f9-dfb358bf9268",
+      "name": "Classify Document",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -16,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "c3c53df1-0eaf-4de8-999d-2bdf41172d8d",
+      "name": "Document Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        800
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "gmail_message_id",
+              "value": "={{ $(\"New Medical Document Email\").item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "d2",
+              "name": "sender_email",
+              "value": "={{ $(\"New Medical Document Email\").item.json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "d3",
+              "name": "subject",
+              "value": "={{ $(\"New Medical Document Email\").item.json.subject || \"(no subject)\" }}",
+              "type": "string"
+            },
+            {
+              "id": "d4",
+              "name": "doc_type",
+              "value": "={{ (() => { const t = String($json.text || \"\").split(\"|\")[0].trim().toLowerCase(); return [\"lab_result\",\"referral\",\"prescription\",\"insurance\",\"imaging\",\"consent_form\"].includes(t) ? t : \"other\"; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "d5",
+              "name": "urgency",
+              "value": "={{ (() => { const t = String($json.text || \"\").split(\"|\")[1] || \"\"; const u = t.trim().toLowerCase(); return u.includes(\"critical\") ? \"critical\" : (u.includes(\"normal\") ? \"normal\" : \"high\"); })() }}",
+              "type": "string"
+            },
+            {
+              "id": "d6",
+              "name": "department",
+              "value": "={{ (String($json.text || \"\").split(\"|\")[2] || \"\").trim() || \"General Admin\" }}",
+              "type": "string"
+            },
+            {
+              "id": "d7",
+              "name": "ai_summary",
+              "value": "={{ String($json.text || \"\").split(\"|\").slice(3).join(\"|\").trim() || \"No summary available\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c572285b-a1eb-4446-9a9c-d0b80bd4443e",
+      "name": "Parse Document Class",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        336,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "5jec5Wffdoiwkm65",
+          "cachedResultName": "medical_documents"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "gmail_message_id": "={{ $json.gmail_message_id }}",
+            "sender_email": "={{ $json.sender_email }}",
+            "subject": "={{ $json.subject }}",
+            "doc_type": "={{ $json.doc_type }}",
+            "urgency": "={{ $json.urgency }}",
+            "department": "={{ $json.department }}",
+            "ai_summary": "={{ $json.ai_summary }}",
+            "status": "filed",
+            "received_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "5b3dc88a-3134-4b71-addc-b7582e5d5da9",
+      "name": "Log Document",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $(\"Parse Document Class\").item.json.gmail_message_id }}"
+      },
+      "id": "8cb56828-15d9-4e3c-8c48-59c9bedede26",
+      "name": "Mark Email Processed",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        576
+      ],
+      "webhookId": "457f0a5b-1498-468f-9257-01d26952dec9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ASbJTuDKjwDhJtLy",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "urg",
+              "leftValue": "={{ $(\"Parse Document Class\").item.json.urgency }}",
+              "rightValue": "normal",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "394a140c-e479-404a-be1c-3f13a12df05e",
+      "name": "Is Document Urgent",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1008,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "ha8751284@gmail.com",
+        "subject": "={{ $(\"Parse Document Class\").item.json.urgency === \"critical\" ? \"CRITICAL document: \" : \"Priority document: \" }}{{ $(\"Parse Document Class\").item.json.doc_type }} for {{ $(\"Parse Document Class\").item.json.department }}",
+        "message": "=<div style=\"background:#f4f6f8;padding:24px;font-family:Arial,Helvetica,sans-serif;\"><div style=\"max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;border:1px solid #e3e8ee;\"><div style=\"background:#b91c1c;color:#ffffff;padding:20px 24px;font-size:20px;font-weight:bold;\">Document needs attention</div><div style=\"padding:24px;color:#1f2937;font-size:15px;line-height:1.6;\"><table style=\"width:100%;background:#fef2f2;border-radius:6px;\" cellpadding=\"12\"><tr><td><b>Urgency:</b> {{ $(\"Parse Document Class\").item.json.urgency }}<br><b>Route to:</b> {{ $(\"Parse Document Class\").item.json.department }}<br><b>Type:</b> {{ $(\"Parse Document Class\").item.json.doc_type }}<br><b>From:</b> {{ $(\"Parse Document Class\").item.json.sender_email }}<br><b>Subject:</b> {{ $(\"Parse Document Class\").item.json.subject }}<br><b>AI summary:</b> {{ $(\"Parse Document Class\").item.json.ai_summary }}</td></tr></table><p>The original email with its attachment is in the clinic inbox. It is also logged in the medical_documents table.</p></div></div></div>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "e0bd3b59-c26c-4d65-9cd1-2c25cd5cf69c",
+      "name": "Alert Staff Urgent Document",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1232,
+        576
+      ],
+      "webhookId": "f58b9154-ec51-4744-a9db-8830124e4fd2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ASbJTuDKjwDhJtLy",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Refill Request Form": {
+      "main": [
+        [
+          {
+            "node": "Assess Refill Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assess Refill Risk": {
+      "main": [
+        [
+          {
+            "node": "Parse Refill Assessment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refill Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Assess Refill Risk",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Refill Assessment": {
+      "main": [
+        [
+          {
+            "node": "Save Refill Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Refill Request": {
+      "main": [
+        [
+          {
+            "node": "Confirm Refill To Patient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Refill To Patient": {
+      "main": [
+        [
+          {
+            "node": "Needs Staff Attention Now",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Staff Attention Now": {
+      "main": [
+        [
+          {
+            "node": "Alert Staff Refill",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 4 Hours": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Refills",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Refills": {
+      "main": [
+        [
+          {
+            "node": "Waiting Too Long",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Waiting Too Long": {
+      "main": [
+        [
+          {
+            "node": "Remind Staff Pending Refill",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remind Staff Pending Refill": {
+      "main": [
+        [
+          {
+            "node": "Record Staff Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Medical Document Email": {
+      "main": [
+        [
+          {
+            "node": "Classify Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Document": {
+      "main": [
+        [
+          {
+            "node": "Parse Document Class",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classify Document",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Document Class": {
+      "main": [
+        [
+          {
+            "node": "Log Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Document": {
+      "main": [
+        [
+          {
+            "node": "Mark Email Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Email Processed": {
+      "main": [
+        [
+          {
+            "node": "Is Document Urgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Document Urgent": {
+      "main": [
+        [
+          {
+            "node": "Alert Staff Urgent Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a7035a80-e817-40bd-a474-7916e2bcad07",
+  "meta": {
+    "instanceId": "b04f995d9325fb8b53a5f54e7ad061fad8b4be68cf4029f256f59f38526822fe"
+  },
+  "nodeGroups": [
+    {
+      "id": "8e812dd9-2d3b-4240-a5f9-1cde843c35cb",
+      "name": "Process refill request",
+      "nodeIds": [
+        "8dacc976-37e9-484f-a39c-2655a8fd2700",
+        "bd692b46-0141-4f1a-a65d-e539f5cccf89",
+        "1a1bb54a-fc82-43f0-9f8f-9b7135cffb2e",
+        "e3f20ebc-b010-4bdc-bce7-9efefd008a81",
+        "6a268904-7728-46aa-a258-01b081cf36cf",
+        "284994b6-b3f8-4e64-811f-0756f9057f3e",
+        "96cffc55-787f-43ec-847f-36ba24fcf7fe"
+      ],
+      "description": "Form submission is risk-rated by AI, saved, confirmed to the patient, and flagged to staff if urgent or sensitive"
+    },
+    {
+      "id": "974da91c-6840-4b73-9c37-4ab0cbe3c1d8",
+      "name": "Chase stale refills",
+      "nodeIds": [
+        "1b4b2183-034c-46a4-8efa-9b6a3646b4dc",
+        "5200c17f-945f-45f0-ba85-5be53fa084b1",
+        "fb64057b-b5b9-4362-a89d-6fe0aa06a883",
+        "7320a61b-8780-4d43-9e43-321027ce60cc"
+      ],
+      "description": "Every 4 hours, reminds staff about refills still awaiting a decision, up to 3 times each"
+    },
+    {
+      "id": "e5f78efb-bb77-439a-83f6-0fe8904c7bf2",
+      "name": "File incoming documents",
+      "nodeIds": [
+        "c3c53df1-0eaf-4de8-999d-2bdf41172d8d",
+        "60311744-8b85-46f4-83f9-dfb358bf9268",
+        "c572285b-a1eb-4446-9a9c-d0b80bd4443e",
+        "5b3dc88a-3134-4b71-addc-b7582e5d5da9",
+        "8cb56828-15d9-4e3c-8c48-59c9bedede26",
+        "394a140c-e479-404a-be1c-3f13a12df05e",
+        "e0bd3b59-c26c-4d65-9cd1-2c25cd5cf69c"
+      ],
+      "description": "Unread emails with attachments are sorted by type and department, logged, marked read, and urgent ones alert staff"
+    }
+  ],
+  "id": "I3R0LgBrwP1Ua5EQ",
+  "tags": []
+}
